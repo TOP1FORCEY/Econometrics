@@ -70,6 +70,12 @@
         .custom-control-label {
             cursor: pointer;
         }
+        #regionsChart, #structureChart {
+            height: 400px;
+        }
+        #scatterChart {
+            height: 300px;
+        }
     </style>
 </head>
 <body>
@@ -117,14 +123,25 @@
                                 Взаємозалежність між показниками
                             </div>
                             <div class="card-body">
-                                <canvas id="scatterChart"></canvas>
+                                <div>
+                                    <canvas id="scatterChart"></canvas>
+                                </div>
                                 <div class="mt-3">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <label for="xVariable" class="form-label">Змінна X:</label>
                                             <select id="xVariable" class="form-select">
                                                 {% for var in variables %}
-                                                <option value="{{ var }}">{{ var }}</option>
+                                                <option value="{{ var }}">
+                                                    {% if var == 'assets' %}Основні засоби
+                                                    {% elif var == 'investments' %}Інвестиції
+                                                    {% elif var == 'employment' %}Зайнятість населення
+                                                    {% elif var == 'enterprises' %}Кількість підприємств
+                                                    {% elif var == 'income' %}Доходи населення
+                                                    {% elif var == 'new_assets' %}Нові основні засоби
+                                                    {% elif var == 'retail' %}Роздрібний товарооборот
+                                                    {% else %}{{ var }}{% endif %}
+                                                </option>
                                                 {% endfor %}
                                             </select>
                                         </div>
@@ -133,7 +150,16 @@
                                             <select id="yVariable" class="form-select">
                                                 <option value="grp">ВРП</option>
                                                 {% for var in variables %}
-                                                <option value="{{ var }}">{{ var }}</option>
+                                                <option value="{{ var }}">
+                                                    {% if var == 'assets' %}Основні засоби
+                                                    {% elif var == 'investments' %}Інвестиції
+                                                    {% elif var == 'employment' %}Зайнятість населення
+                                                    {% elif var == 'enterprises' %}Кількість підприємств
+                                                    {% elif var == 'income' %}Доходи населення
+                                                    {% elif var == 'new_assets' %}Нові основні засоби
+                                                    {% elif var == 'retail' %}Роздрібний товарооборот
+                                                    {% else %}{{ var }}{% endif %}
+                                                </option>
                                                 {% endfor %}
                                             </select>
                                         </div>
@@ -176,7 +202,14 @@
                                                 <div class="form-check">
                                                     <input class="form-check-input variable-checkbox" type="checkbox" value="{{ var }}" id="var_{{ var }}" name="variables" {% if var in default_vars %}checked{% endif %}>
                                                     <label class="form-check-label" for="var_{{ var }}">
-                                                        {{ var }}
+                                                        {% if var == 'assets' %}Основні засоби
+                                                        {% elif var == 'investments' %}Інвестиції
+                                                        {% elif var == 'employment' %}Зайнятість населення
+                                                        {% elif var == 'enterprises' %}Кількість підприємств
+                                                        {% elif var == 'income' %}Доходи населення
+                                                        {% elif var == 'new_assets' %}Нові основні засоби
+                                                        {% elif var == 'retail' %}Роздрібний товарооборот
+                                                        {% else %}{{ var }}{% endif %}
                                                     </label>
                                                 </div>
                                             </div>
@@ -189,7 +222,16 @@
                                         <div class="row values-inputs">
                                             {% for var in variables %}
                                             <div class="col-md-6 mb-2 var-input-container" id="input_container_{{ var }}" {% if var not in default_vars %}style="display: none;"{% endif %}>
-                                                <label for="value_{{ var }}" class="form-label">{{ var }}:</label>
+                                                <label for="value_{{ var }}" class="form-label">
+                                                    {% if var == 'assets' %}Основні засоби:
+                                                    {% elif var == 'investments' %}Інвестиції:
+                                                    {% elif var == 'employment' %}Зайнятість населення:
+                                                    {% elif var == 'enterprises' %}Кількість підприємств:
+                                                    {% elif var == 'income' %}Доходи населення:
+                                                    {% elif var == 'new_assets' %}Нові основні засоби:
+                                                    {% elif var == 'retail' %}Роздрібний товарооборот:
+                                                    {% else %}{{ var }}:{% endif %}
+                                                </label>
                                                 <input type="number" class="form-control" id="value_{{ var }}" name="values[{{ var }}]" step="0.01">
                                             </div>
                                             {% endfor %}
@@ -275,7 +317,16 @@
                             <tbody>
                                 {% for vif in vif_data %}
                                 <tr>
-                                    <td>{{ vif.feature }}</td>
+                                    <td>
+                                        {% if vif.feature == 'assets' %}Основні засоби
+                                        {% elif vif.feature == 'investments' %}Інвестиції
+                                        {% elif vif.feature == 'employment' %}Зайнятість населення
+                                        {% elif vif.feature == 'enterprises' %}Кількість підприємств
+                                        {% elif vif.feature == 'income' %}Доходи населення
+                                        {% elif vif.feature == 'new_assets' %}Нові основні засоби
+                                        {% elif vif.feature == 'retail' %}Роздрібний товарооборот
+                                        {% else %}{{ vif.feature }}{% endif %}
+                                    </td>
                                     <td>{{ "%.2f"|format(vif.VIF) }}</td>
                                     <td>
                                         {% if vif.VIF > 10 %}
@@ -322,7 +373,16 @@
                                         {% for var in variables %}
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="checkbox" id="comp_{{ var }}" value="{{ var }}">
-                                            <label class="form-check-label" for="comp_{{ var }}">{{ var }}</label>
+                                            <label class="form-check-label" for="comp_{{ var }}">
+                                                {% if var == 'assets' %}Основні засоби
+                                                {% elif var == 'investments' %}Інвестиції
+                                                {% elif var == 'employment' %}Зайнятість
+                                                {% elif var == 'enterprises' %}Підприємства
+                                                {% elif var == 'income' %}Доходи
+                                                {% elif var == 'new_assets' %}Нові засоби
+                                                {% elif var == 'retail' %}Товарооборот
+                                                {% else %}{{ var }}{% endif %}
+                                            </label>
                                         </div>
                                         {% endfor %}
                                     </div>
@@ -402,6 +462,19 @@
         const initialCoefficients = {{ model_result.coefficients|tojson|safe }};
         const initialRSquared = {{ model_result.r_squared }};
         const predictionResults = {{ model_result.predicted_values|tojson|safe }};
+
+        // Переклад назв змінних для відображення
+        const varNames = {
+            'grp': 'ВРП',
+            'assets': 'Основні засоби',
+            'investments': 'Інвестиції',
+            'employment': 'Зайнятість населення',
+            'enterprises': 'Кількість підприємств',
+            'income': 'Доходи населення',
+            'new_assets': 'Нові основні засоби',
+            'retail': 'Роздрібний товарооборот',
+            'const': 'Вільний член'
+        };
     </script>
     
     <!-- JavaScript для управління інтерфейсом та взаємодії з сервером -->
@@ -472,7 +545,7 @@
                 const structureChart = new Chart(structureCtx, {
                     type: 'radar',
                     data: {
-                        labels: variables,
+                        labels: variables.map(v => varNames[v] || v),
                         datasets: regionsData.slice(0, 5).map((region, index) => {
                             const colors = [
                                 'rgba(78, 115, 223, 0.6)',
@@ -536,7 +609,7 @@
                     type: 'scatter',
                     data: {
                         datasets: [{
-                            label: `${yVar} vs ${xVar} (кореляція: ${correlationValue})`,
+                            label: `${varNames[yVar] || yVar} vs ${varNames[xVar] || xVar} (кореляція: ${correlationValue})`,
                             data: regionsData.map(region => ({
                                 x: region[xVar],
                                 y: region[yVar],
@@ -554,13 +627,13 @@
                             x: {
                                 title: {
                                     display: true,
-                                    text: xVar
+                                    text: varNames[xVar] || xVar
                                 }
                             },
                             y: {
                                 title: {
                                     display: true,
-                                    text: yVar
+                                    text: varNames[yVar] || yVar
                                 }
                             }
                         },
@@ -569,7 +642,7 @@
                                 callbacks: {
                                     label: function(context) {
                                         const point = context.raw;
-                                        return `${point.region}: ${xVar}=${point.x}, ${yVar}=${point.y}`;
+                                        return `${point.region}: ${varNames[xVar] || xVar}=${point.x}, ${varNames[yVar] || yVar}=${point.y}`;
                                     }
                                 }
                             }
@@ -633,7 +706,7 @@
                         values[variable] = parseFloat($(`#value_${variable}`).val());
                         
                         if (isNaN(values[variable])) {
-                            alert(`Будь ласка, введіть числове значення для ${variable}`);
+                            alert(`Будь ласка, введіть числове значення для ${varNames[variable] || variable}`);
                             return;
                         }
                     });
@@ -677,7 +750,7 @@
                 coefficientsList.empty();
                 
                 for (const [variable, value] of Object.entries(coefficients)) {
-                    const displayVar = variable === 'const' ? 'Вільний член' : variable;
+                    const displayVar = varNames[variable] || variable;
                     const coefficient = Math.round(value * 1000) / 1000;
                     
                     coefficientsList.append(
@@ -696,16 +769,16 @@
                 const heatmapCtx = document.getElementById('correlationHeatmap').getContext('2d');
                 
                 // Підготовка даних для теплової карти
-                const variables = ['grp', ...Object.keys(correlationMatrix).filter(k => k !== 'grp')];
+                const heatmapVariables = ['grp', ...variables];
                 
                 // Створення даних для теплової карти
                 const heatmapData = [];
-                for (let i = 0; i < variables.length; i++) {
-                    for (let j = 0; j < variables.length; j++) {
-                        const value = correlationMatrix[variables[i]][variables[j]];
+                for (let i = 0; i < heatmapVariables.length; i++) {
+                    for (let j = 0; j < heatmapVariables.length; j++) {
+                        const value = correlationMatrix[heatmapVariables[i]][heatmapVariables[j]];
                         heatmapData.push({
-                            x: variables[j],
-                            y: variables[i],
+                            x: varNames[heatmapVariables[j]] || heatmapVariables[j],
+                            y: varNames[heatmapVariables[i]] || heatmapVariables[i],
                             v: value
                         });
                     }
@@ -741,7 +814,7 @@
                             x: {
                                 type: 'category',
                                 position: 'top',
-                                labels: variables,
+                                labels: heatmapVariables.map(v => varNames[v] || v),
                                 title: {
                                     display: true,
                                     text: 'Змінні'
@@ -749,7 +822,7 @@
                             },
                             y: {
                                 type: 'category',
-                                labels: variables,
+                                labels: heatmapVariables.map(v => varNames[v] || v),
                                 reverse: true,
                                 title: {
                                     display: true,
@@ -884,7 +957,7 @@
                 window.comparisonChart = new Chart(comparisonCtx, {
                     type: 'radar',
                     data: {
-                        labels: variables,
+                        labels: variables.map(v => varNames[v] || v),
                         datasets: regions.map((region, index) => {
                             const colors = [
                                 'rgba(78, 115, 223, 0.6)',
@@ -946,7 +1019,7 @@
                 headerRow.append('<th>Регіон</th>');
                 
                 variables.forEach(variable => {
-                    headerRow.append(`<th>${variable}</th>`);
+                    headerRow.append(`<th>${varNames[variable] || variable}</th>`);
                 });
                 
                 thead.append(headerRow);
@@ -970,3 +1043,4 @@
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+                                
