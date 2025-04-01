@@ -1,9 +1,12 @@
 FROM nginx:alpine
 
-# Копіюємо HTML-файл у веб-директорію Nginx
+# Створюємо директорію для статичних файлів, якщо її немає в образі
+RUN mkdir -p /usr/share/nginx/html/static/data
+
+# Копіюємо HTML-файл
 COPY templates/index.html /usr/share/nginx/html/index.html
 
-# Копіюємо Excel-файл для потенційного використання в майбутньому
+# Копіюємо Excel-файл
 COPY static/data/Multicolinear.xlsx /usr/share/nginx/html/static/data/Multicolinear.xlsx
 
 # Відкриваємо порт 80
