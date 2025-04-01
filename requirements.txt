@@ -1,5 +1,3 @@
-python-dotenv
-http-server
 Flask
 pandas
 numpy
