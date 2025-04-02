@@ -1,7 +1,7 @@
 FROM nginx:alpine
 
 # Копіюємо HTML-файл
-COPY index.html /usr/share/nginx/html/index.html
+COPY . /usr/share/nginx/html/
 
 # Відкриваємо порт 80
 EXPOSE 80
