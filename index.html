@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Економетричний аналіз ВРП регіонів України</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link href="styles.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css">
+</head>
+<body>
+    <div class="header text-center">
+        <h1>Економетричний аналіз ВРП регіонів України</h1>
+        <p class="lead">Інтерактивна система для аналізу та прогнозування валового регіонального продукту</p>
+    </div>
+
+    <div class="container">
+        <ul class="nav nav-tabs" id="mainTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">
+                    <i class="fas fa-chart-line me-2"></i>Інформаційна панель
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="prediction-tab" data-bs-toggle="tab" data-bs-target="#prediction" type="button" role="tab" aria-controls="prediction" aria-selected="false">
+                    <i class="fas fa-calculator me-2"></i>Прогнозування ВРП
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="correlation-tab" data-bs-toggle="tab" data-bs-target="#correlation" type="button" role="tab" aria-controls="correlation" aria-selected="false">
+                    <i class="fas fa-table me-2"></i>Кореляційна матриця
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="comparison-tab" data-bs-toggle="tab" data-bs-target="#comparison" type="button" role="tab" aria-controls="comparison" aria-selected="false">
+                    <i class="fas fa-balance-scale me-2"></i>Порівняння регіонів
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button" role="tab" aria-controls="about" aria-selected="false">
+                    <i class="fas fa-info-circle me-2"></i>Про проект
+                </button>
+            </li>
+        </ul>
+        
+        <div class="tab-content" id="mainTabContent">
+            <!-- Інформаційна панель -->
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+                <div class="row mt-4">
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <h5>Всього регіонів</h5>
+                            <div class="stats-value" id="totalRegions">27</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <h5>Середній ВРП</h5>
+                            <div class="stats-value" id="averageGRP">12,542 млн грн</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <h5>Макс. ВРП</h5>
+                            <div class="stats-value" id="maxGRP">61,357 млн грн</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-box">
+                            <h5>Коефіцієнт детермінації</h5>
+                            <div class="stats-value" id="dashboardRSquared">97.24%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <i class="fas fa-chart-bar me-2"></i>Регресійна модель ВРП
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h5>Рівняння регресії:</h5>
+                                <div class="equation-container p-3 bg-light rounded mb-3" id="regressionEquation">
+                                    <strong>ВРП = -874.54 + 0.155 × Основні засоби + 3.036 × Нові основні засоби + 0.070 × Роздрібний товарооборот</strong>
+                                </div>
+                                <div class="mt-3">
+                                    <h6>Якість моделі:</h6>
+                                    <ul>
+                                        <li>Коефіцієнт детермінації (R²): <span id="modelRSquared">97.24%</span></li>
+                                        <li>Скоригований R²: <span id="modelAdjustedRSquared">96.97%</span></li>
+                                        <li>Стандартна помилка: <span id="modelStdError">856.32</span> млн грн</li>
+                                    </ul>
+                                </div>
+                                <div class="mt-3">
+                                    <h6>Інтерпретація:</h6>
+                                    <p>Рівняння показує вплив кожного фактора на ВРП. Значення коефіцієнтів вказують, наскільки змінюється ВРП при зміні відповідного фактора на одиницю.</p>
+                                    <p>Модель пояснює <span id="interpretRSquared">97.24%</span> варіації ВРП через обрані фактори, що свідчить про високу якість моделі.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-md-12">
+                                <h5>Порівняння фактичних та прогнозованих значень ВРП:</h5>
+                                <div class="canvas-container">
+                                    <canvas id="regressionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-pie me-2"></i>Загальна статистика по ВРП регіонів
+                            </div>
+                            <div class="card-body">
+                                <div class="canvas-container">
+                                    <canvas id="regionsChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-scatter me-2"></i>Взаємозалежність між показниками
+                            </div>
+                            <div class="card-body">
+                                <div class="canvas-container">
+                                    <canvas id="scatterChart"></canvas>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <label for="xVariable" class="form-label">Змінна X:</label>
+                                            <select id="xVariable" class="form-select">
+                                                <option value="assets">Основні засоби</option>
+                                                <option value="investments">Інвестиції</option>
+                                                <option value="employment">Зайнятість населення</option>
+                                                <option value="enterprises">Кількість підприємств</option>
+                                                <option value="income">Доходи населення</option>
+                                                <option value="new_assets">Нові основні засоби</option>
+                                                <option value="retail">Роздрібний товарооборот</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="yVariable" class="form-label">Змінна Y:</label>
+                                            <select id="yVariable" class="form-select">
+                                                <option value="grp" selected>ВРП</option>
+                                                <option value="assets">Основні засоби</option>
+                                                <option value="investments">Інвестиції</option>
+                                                <option value="employment">Зайнятість населення</option>
+                                                <option value="enterprises">Кількість підприємств</option>
+                                                <option value="income">Доходи населення</option>
+                                                <option value="new_assets">Нові основні засоби</option>
+                                                <option value="retail">Роздрібний товарооборот</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-chart-radar me-2"></i>Структура економіки регіонів
+                            </div>
+                            <div class="card-body">
+                                <div class="canvas-container">
+                                    <canvas id="structureChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Прогнозування ВРП -->
+            <div class="tab-pane fade" id="prediction" role="tabpanel" aria-labelledby="prediction-tab">
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <i class="fas fa-cogs me-2"></i>Налаштування моделі прогнозування
+                            </div>
+                            <div class="card-body">
+                                <form id="predictionForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Виберіть змінні для моделі:</label>
+                                        <div class="row">
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input variable-checkbox" type="checkbox" value="assets" id="var_assets" name="variables" checked>
+                                                    <label class="form-check-label" for="var_assets">
+                                                        Основні засоби
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input variable-checkbox" type="checkbox" value="investments" id="var_investments" name="variables">
+                                                    <label class="form-check-label" for="var_investments">
+                                                        Інвестиції
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input variable-checkbox" type="checkbox" value="employment" id="var_employment" name="variables">
+                                                    <label class="form-check-label" for="var_employment">
+                                                        Зайнятість населення
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input variable-checkbox" type="checkbox" value="enterprises" id="var_enterprises" name="variables">
+                                                    <label class="form-check-label" for="var_enterprises">
+                                                        Кількість підприємств
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input variable-checkbox" type="checkbox" value="income" id="var_income" name="variables">
+                                                    <label class="form-check-label" for="var_income">
+                                                        Доходи населення
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input variable-checkbox" type="checkbox" value="new_assets" id="var_new_assets" name="variables" checked>
+                                                    <label class="form-check-label" for="var_new_assets">
+                                                        Нові основні засоби
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input variable-checkbox" type="checkbox" value="retail" id="var_retail" name="variables" checked>
+                                                    <label class="form-check-label" for="var_retail">
+                                                        Роздрібний товарооборот
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Введіть значення для прогнозу:</label>
+                                        <div class="row values-inputs">
+                                            <div class="col-md-6 mb-2 var-input-container" id="input_container_assets">
+                                                <label for="value_assets" class="form-label">Основні засоби:</label>
+                                                <input type="number" class="form-control" id="value_assets" name="values[assets]" value="43758" step="0.01">
+                                            </div>
+                                            <div class="col-md-6 mb-2 var-input-container" id="input_container_investments" style="display: none;">
+                                                <label for="value_investments" class="form-label">Інвестиції:</label>
+                                                <input type="number" class="form-control" id="value_investments" name="values[investments]" value="2740" step="0.01">
+                                            </div>
+                                            <div class="col-md-6 mb-2 var-input-container" id="input_container_employment" style="display: none;">
+                                                <label for="value_employment" class="form-label">Зайнятість населення:</label>
+                                                <input type="number" class="form-control" id="value_employment" name="values[employment]" value="899.7" step="0.01">
+                                            </div>
+                                            <div class="col-md-6 mb-2 var-input-container" id="input_container_enterprises" style="display: none;">
+                                                <label for="value_enterprises" class="form-label">Кількість підприємств:</label>
+                                                <input type="number" class="form-control" id="value_enterprises" name="values[enterprises]" value="43381" step="0.01">
+                                            </div>
+                                            <div class="col-md-6 mb-2 var-input-container" id="input_container_income" style="display: none;">
+                                                <label for="value_income" class="form-label">Доходи населення:</label>
+                                                <input type="number" class="form-control" id="value_income" name="values[income]" value="10022" step="0.01">
+                                            </div>
+                                            <div class="col-md-6 mb-2 var-input-container" id="input_container_new_assets">
+                                                <label for="value_new_assets" class="form-label">Нові основні засоби:</label>
+                                                <input type="number" class="form-control" id="value_new_assets" name="values[new_assets]" value="1804" step="0.01">
+                                            </div>
+                                            <div class="col-md-6 mb-2 var-input-container" id="input_container_retail">
+                                                <label for="value_retail" class="form-label">Роздрібний товарооборот:</label>
+                                                <input type="number" class="form-control" id="value_retail" name="values[retail]" value="2434.3" step="0.01">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="form-label">Або виберіть регіон для заповнення значень:</label>
+                                        <select class="form-select" id="regionSelect">
+                                            <option value="">-- Виберіть регіон --</option>
+                                            <option value="Автономна Республіка Крим">Автономна Республіка Крим</option>
+                                            <option value="Вінницька">Вінницька</option>
+                                            <option value="Волинська">Волинська</option>
+                                            <option value="Дніпропетровська">Дніпропетровська</option>
+                                            <option value="Донецька">Донецька</option>
+                                            <option value="Житомирська">Житомирська</option>
+                                            <option value="Закарпатська">Закарпатська</option>
+                                            <option value="Запорізька">Запорізька</option>
+                                            <option value="Івано-Франківська">Івано-Франківська</option>
+                                            <option value="Київська">Київська</option>
+                                            <option value="Кіровоградська">Кіровоградська</option>
+                                            <option value="Луганська">Луганська</option>
+                                            <option value="Львівська">Львівська</option>
+                                            <option value="Миколаївська">Миколаївська</option>
+                                            <option value="Одеська">Одеська</option>
+                                            <option value="Полтавська">Полтавська</option>
+                                            <option value="Рівненська">Рівненська</option>
+                                            <option value="Сумська">Сумська</option>
+                                            <option value="Тернопільська">Тернопільська</option>
+                                            <option value="Харківська">Харківська</option>
+                                            <option value="Херсонська">Херсонська</option>
+                                            <option value="Хмельницька">Хмельницька</option>
+                                            <option value="Черкаська">Черкаська</option>
+                                            <option value="Чернівецька">Чернівецька</option>
+                                            <option value="Чернігівська">Чернігівська</option>
+                                            <option value="м.Київ">м.Київ</option>
+                                            <option value="м.Севастополь">м.Севастополь</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-primary">Розрахувати прогноз</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-lg-4">
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <i class="fas fa-lightbulb me-2"></i>Результат прогнозування
+                            </div>
+                            <div class="card-body text-center">
+                                <div id="loadingPrediction" style="display: none;">
+                                    <div class="loading-spinner"></div>
+                                    <p class="mt-2">Обчислення регресійної моделі...</p>
+                                </div>
+                                <div id="predictionResult">
+                                    <h5>Прогнозований ВРП:</h5>
+                                    <div class="prediction-result" id="predictedGRP">11,575 млн грн</div>
+                                    <div class="mt-3">
+                                        <h6>Коефіцієнти моделі:</h6>
+                                        <div id="coefficientsList">
+                                            <div class="coefficient-item">
+                                                <strong>Вільний член:</strong> -874.538
+                                            </div>
+                                            <div class="coefficient-item">
+                                                <strong>Основні засоби:</strong> 0.155
+                                            </div>
+                                            <div class="coefficient-item">
+                                                <strong>Нові основні засоби:</strong> 3.036
+                                            </div>
+                                            <div class="coefficient-item">
+                                                <strong>Роздрібний товарооборот:</strong> 0.070
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="r-squared" id="rSquaredValue">R²: 97.24%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Кореляційна матриця -->
+            <div class="tab-pane fade" id="correlation" role="tabpanel" aria-labelledby="correlation-tab">
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <i class="fas fa-th me-2"></i>Кореляційна матриця показників
+                    </div>
+                    <div class="card-body">
+                        <div class="canvas-container">
+                            <canvas id="correlationHeatmap"></canvas>
+                        </div>
+                        <div class="mt-4">
+                            <h5>Інтерпретація кореляційної матриці:</h5>
+                            <ul>
+                                <li>Значення близькі до 1 означають сильну позитивну кореляцію</li>
+                                <li>Значення близькі до -1 означають сильну негативну кореляцію</li>
+                                <li>Значення близькі до 0 означають відсутність лінійної кореляції</li>
+                            </ul>
+                            <p><strong>Важливо:</strong> Висока кореляція не обов'язково означає причинно-наслідковий зв'язок.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Фактори інфляції дисперсії (VIF)
+                    </div>
+                    <div class="card-body">
+                        <p>Фактор інфляції дисперсії (VIF) допомагає виявити мультиколінеарність між змінними. Високі значення VIF (зазвичай > 10) вказують на сильну мультиколінеарність.</p>
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Змінна</th>
+                                    <th>VIF</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vifTableBody">
+                                <!-- Дані VIF будуть додані через JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Порівняння регіонів -->
+            <div class="tab-pane fade" id="comparison" role="tabpanel" aria-labelledby="comparison-tab">
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <i class="fas fa-chart-bar me-2"></i>Порівняння показників регіонів
+                    </div>
+                    <div class="card-body">
+                        <form id="comparisonForm" class="mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Виберіть регіони для порівняння:</label>
+                                    <select class="form-select" id="comparisonRegions" multiple size="8">
+                                        <option value="Автономна Республіка Крим">Автономна Республіка Крим</option>
+                                        <option value="Вінницька">Вінницька</option>
+                                        <option value="Волинська">Волинська</option>
+                                        <option value="Дніпропетровська">Дніпропетровська</option>
+                                        <option value="Донецька">Донецька</option>
+                                        <option value="Житомирська">Житомирська</option>
+                                        <option value="Закарпатська">Закарпатська</option>
+                                        <option value="Запорізька">Запорізька</option>
+                                        <option value="Івано-Франківська">Івано-Франківська</option>
+                                        <option value="Київська">Київська</option>
+                                        <option value="Кіровоградська">Кіровоградська</option>
+                                        <option value="Луганська">Луганська</option>
+                                        <option value="Львівська">Львівська</option>
+                                        <option value="Миколаївська">Миколаївська</option>
+                                        <option value="Одеська">Одеська</option>
+                                        <option value="Полтавська">Полтавська</option>
+                                        <option value="Рівненська">Рівненська</option>
+                                        <option value="Сумська">Сумська</option>
+                                        <option value="Тернопільська">Тернопільська</option>
+                                        <option value="Харківська">Харківська</option>
+                                        <option value="Херсонська">Херсонська</option>
+                                        <option value="Хмельницька">Хмельницька</option>
+                                        <option value="Черкаська">Черкаська</option>
+                                        <option value="Чернівецька">Чернівецька</option>
+                                        <option value="Чернігівська">Чернігівська</option>
+                                        <option value="м.Київ">м.Київ</option>
+                                        <option value="м.Севастополь">м.Севастополь</option>
+                                    </select>
+                                    <small class="form-text text-muted">Натисність Ctrl або Cmd для вибору декількох регіонів</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Виберіть показники для порівняння:</label>
+                                    <div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="comp_grp" value="grp" checked>
+                                            <label class="form-check-label" for="comp_grp">ВРП</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="comp_assets" value="assets">
+                                            <label class="form-check-label" for="comp_assets">Основні засоби</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="comp_investments" value="investments">
+                                            <label class="form-check-label" for="comp_investments">Інвестиції</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="comp_employment" value="employment">
+                                            <label class="form-check-label" for="comp_employment">Зайнятість</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="comp_enterprises" value="enterprises">
+                                            <label class="form-check-label" for="comp_enterprises">Підприємства</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="comp_income" value="income">
+                                            <label class="form-check-label" for="comp_income">Доходи</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="comp_new_assets" value="new_assets">
+                                            <label class="form-check-label" for="comp_new_assets">Нові засоби</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="checkbox" id="comp_retail" value="retail">
+                                            <label class="form-check-label" for="comp_retail">Товарооборот</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-3">Порівняти</button>
+                        </form>
+                        
+                        <div id="comparisonChartContainer">
+                            <div class="canvas-container">
+                                <canvas id="comparisonChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div id="comparisonTableContainer" class="mt-4">
+                            <h5>Детальне порівняння:</h5>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover" id="comparisonTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Регіон</th>
+                                            <th>ВРП</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Дані будуть додані через JavaScript -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Про проект -->
+            <div class="tab-pane fade" id="about" role="tabpanel" aria-labelledby="about-tab">
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <i class="fas fa-info-circle me-2"></i>Про проект
+                    </div>
+                    <div class="card-body">
+                        <h5>Економетричний аналіз ВРП регіонів України</h5>
+                        <p>Цей проект представляє економетричний аналіз валового регіонального продукту (ВРП) регіонів України на основі соціально-економічних показників за 2004 рік.</p>
+                        
+                        <h5 class="mt-4">Методологія:</h5>
+                        <p>Для аналізу використано множинну лінійну регресію з використанням методу найменших квадратів (МНК). Проведено аналіз мультиколінеарності через розрахунок факторів інфляції дисперсії (VIF).</p>
+                        <p>Рівняння регресії включає такі змінні:</p>
+                        <ul>
+                            <li><strong>Основні засоби</strong> - вартість основних засобів регіону у фактичних цінах, млн грн</li>
+                            <li><strong>Нові основні засоби</strong> - введення в дію нових основних засобів, млн грн</li>
+                            <li><strong>Роздрібний товарооборот</strong> - обсяг роздрібного товарообороту підприємств, млн грн</li>
+                        </ul>
+                        
+                        <p>Оцінка якості моделі:</p>
+                        <ul>
+                            <li><strong>Коефіцієнт детермінації (R²)</strong>: показує відсоток варіації залежної змінної, який пояснюється моделлю</li>
+                            <li><strong>Скоригований R²</strong>: враховує кількість предикторів у моделі</li>
+                            <li><strong>Стандартна помилка</strong>: середньоквадратичне відхилення залишків</li>
+                        </ul>
+                        
+                        <h5 class="mt-4">Економетричний аналіз:</h5>
+                        <p>Проведено тести на мультиколінеарність між незалежними змінними. Через високі значення VIF (> 10) для всіх змінних, існує ризик мультиколінеарності, що може впливати на точність оцінок коефіцієнтів.</p>
+                        <p>Для побудови оптимальної моделі обрано змінні з найнижчими значеннями VIF:</p>
+                        <ol>
+                            <li>Основні засоби</li>
+                            <li>Нові основні засоби</li>
+                            <li>Роздрібний товарооборот</li>
+                        </ol>
+                        
+                        <h5 class="mt-4">Інтерпретація результатів:</h5>
+                        <p>Значення коефіцієнтів регресії показують:</p>
+                        <ul>
+                            <li>При збільшенні основних засобів на 1 млн грн, ВРП зростає в середньому на 0.155 млн грн за умови незмінності інших факторів</li>
+                            <li>При збільшенні нових основних засобів на 1 млн грн, ВРП зростає в середньому на 3.036 млн грн</li>
+                            <li>При збільшенні роздрібного товарообороту на 1 млн грн, ВРП зростає в середньому на 0.070 млн грн</li>
+                        </ul>
+                        
+                        <h5 class="mt-4">Технології:</h5>
+                        <ul>
+                            <li><strong>Frontend:</strong> HTML, JavaScript, Bootstrap, Chart.js</li>
+                            <li><strong>Аналіз даних:</strong> Регресійний аналіз, кореляційний аналіз, виявлення мультиколінеарності</li>
+                        </ul>
+                        <div class="team-section mt-4">
+                            <h5 class="text-center mb-4">Наша Команда</h5>
+                            <div class="row justify-content-center">
+                                <div class="col-md-4 col-lg-2 text-center mb-4">
+                                    <img src="photo/1.png" alt="Руденко Євген" class="img-fluid rounded-3 mb-3" style="width: 200px; height: 200px; object-fit: cover;">
+                                    <h6 class="mt-2">Руденко Євген</h6>
+                                </div>
+                                <div class="col-md-4 col-lg-2 text-center mb-4">
+                                    <img src="photo/2.jpg" alt="Щербакова Єлізавєта" class="img-fluid rounded-3 mb-3" style="width: 200px; height: 200px; object-fit: cover;">
+                                    <h6 class="mt-2">Щербакова Єлізавєта</h6>
+                                </div>
+                                <div class="col-md-4 col-lg-2 text-center mb-4">
+                                    <img src="photo/3.jpg" alt="Козачок Дар`я" class="img-fluid rounded-3 mb-3" style="width: 200px; height: 200px; object-fit: cover;">
+                                    <h6 class="mt-2">Козачок Дар`я</h6>
+                                </div>
+                                <div class="col-md-4 col-lg-2 text-center mb-4">
+                                    <img src="photo/4.jpg" alt="Сиваківський Тарас" class="img-fluid rounded-3 mb-3" style="width: 200px; height: 200px; object-fit: cover;">
+                                    <h6 class="mt-2">Сиваківський Тарас</h6>
+                                </div>
+                                <div class="col-md-4 col-lg-2 text-center mb-4">
+                                    <img src="photo/5.jpg" alt="Савицький Назар" class="img-fluid rounded-3 mb-3" style="width: 200px; height: 200px; object-fit: cover;">
+                                    <h6 class="mt-2">Савицький Назар</h6>
+                                </div>
+                                <div class="col-md-4 col-lg-2 text-center mb-4">
+                                    <img src="photo/6.jpg" alt="Сотніков Іван" class="img-fluid rounded-3 mb-3" style="width: 200px; height: 200px; object-fit: cover;">
+                                    <h6 class="mt-2">Сотніков Іван</h6>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <style>
+                            .team-section img {
+                                transition: transform 0.3s ease;
+                            }
+                            .team-section img:hover {
+                                transform: scale(1.05);
+                            }
+                        </style>
+                        
+                        <div class="alert alert-info mt-4">
+                            <strong>Примітка:</strong> Цей проект призначений для навчальних цілей з економетрики. Дані взяті з офіційних джерел статистичної інформації України за 2004 рік.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="bg-dark text-white text-center py-3 mt-5">
+        <div class="container">
+            <p class="mb-0">Економетричний аналізатор регіонів України © 2025</p>
+        </div>
+    </footer>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- Our custom scripts -->
+    <script src="data.js"></script>
+    <script src="econometrics.js"></script>
+    <script src="visualization.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
