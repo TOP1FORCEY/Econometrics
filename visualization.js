@@ -2,7 +2,10 @@
  * Функції для візуалізації даних економетричного аналізу
  * Бібліотека використовує Chart.js для створення різних типів графіків
  */
-
+// Додайте виклик у вашу функцію ініціалізації або в обробник переключення вкладок
+document.getElementById('correlation-tab').addEventListener('click', function() {
+    createCorrelationMatrix();
+});
 /**
  * Безпечне знищення Chart.js графіка
  * @param {Object} chartInstance - екземпляр графіка Chart.js
@@ -222,7 +225,26 @@ function updateScatterChart(xVar, yVar) {
  * Створює структурну діаграму (радарну)
  * @returns {Chart} об'єкт Chart.js з діаграмою
  */
+
+// Додайте це до вашої функції createStructureChart перед створенням діаграми
+const chartContainer = document.createElement('div');
+chartContainer.style.width = '80%'; // Ширина 80% від контейнера
+chartContainer.style.height = '450px'; // Фіксована висота
+chartContainer.style.margin = '0 auto'; // Центрування
+
+// Замінюємо оригінальний canvas новим
+const originalCanvas = document.getElementById('structureChart');
+const newCanvas = document.createElement('canvas');
+newCanvas.id = 'structureChart';
+
+chartContainer.appendChild(newCanvas);
+originalCanvas.parentNode.replaceChild(chartContainer, originalCanvas);
+
+// Тепер використовуємо новий canvas
+const ctx = newCanvas.getContext('2d');
+
 function createStructureChart() {
+    
     const ctx = document.getElementById('structureChart');
     if (!ctx) {
         console.error('Canvas element with id "structureChart" not found');
@@ -234,16 +256,92 @@ function createStructureChart() {
     
     const vars = ['assets', 'investments', 'employment', 'enterprises', 'income', 'new_assets', 'retail'];
     
-    // Вибір 5 основних регіонів за ВРП
-    const topRegions = [...regionsData]
-        .sort((a, b) => b.grp - a.grp)
-        .slice(0, 5);
+    // Перевіряємо, чи існує контейнер для вибору регіонів, якщо ні - створюємо його
+    let selectContainer = document.getElementById('structureRegionsSelectContainer');
+    if (!selectContainer) {
+        // Створюємо контейнер для вибору регіонів
+        selectContainer = document.createElement('div');
+        selectContainer.id = 'structureRegionsSelectContainer';
+        selectContainer.className = 'mb-4 p-3 border rounded';
+        
+        const label = document.createElement('label');
+        label.className = 'form-label';
+        label.textContent = 'Оберіть регіони для відображення:';
+        
+        const select = document.createElement('select');
+        select.id = 'structureRegionsSelect';
+        select.className = 'form-select';
+        select.multiple = true;
+        select.size = 5;
+        
+        // Наповнюємо список регіонів
+        regionsData.sort((a, b) => b.grp - a.grp).forEach((region, index) => {
+            const option = document.createElement('option');
+            option.value = region.region;
+            option.textContent = `${region.region}`;
+            
+            // За замовчуванням обираємо топ-6 регіонів
+            if (index < 2) {
+                option.selected = true;
+            }
+            
+            select.appendChild(option);
+        });
+        
+        const helpText = document.createElement('small');
+        helpText.className = 'form-text text-muted mt-2';
+        helpText.textContent = 'Утримуйте Ctrl або Command для вибору декількох регіонів';
+        
+        const updateButton = document.createElement('button');
+        updateButton.id = 'updateStructureChart';
+        updateButton.className = 'btn btn-primary mt-3';
+        updateButton.textContent = 'Оновити діаграму';
+        updateButton.addEventListener('click', createStructureChart);
+        
+        // Додаємо все до контейнера
+        selectContainer.appendChild(label);
+        selectContainer.appendChild(select);
+        selectContainer.appendChild(helpText);
+        selectContainer.appendChild(document.createElement('br'));
+        selectContainer.appendChild(updateButton);
+        
+        // Вставляємо контейнер перед полотном діаграми
+        ctx.parentNode.insertBefore(selectContainer, ctx);
+    }
+    
+    // Отримуємо вибрані регіони
+    const selectedRegions = [];
+    const selectElement = document.getElementById('structureRegionsSelect');
+    
+    for (let i = 0; i < selectElement.options.length; i++) {
+        if (selectElement.options[i].selected) {
+            const regionName = selectElement.options[i].value;
+            const regionData = regionsData.find(r => r.region === regionName);
+            if (regionData) {
+                selectedRegions.push(regionData);
+            }
+        }
+    }
+    
+    // Якщо нічого не вибрано, беремо топ-2 за замовчуванням
+    if (selectedRegions.length === 0) {
+        const topRegions = [...regionsData]
+            .sort((a, b) => b.grp - a.grp)
+            .slice(0, 2);
+        selectedRegions.push(...topRegions);
+        
+        // Оновлюємо вибрані опції в селекті
+        for (let i = 0; i < selectElement.options.length; i++) {
+            const regionName = selectElement.options[i].value;
+            selectElement.options[i].selected = topRegions.some(r => r.region === regionName);
+        }
+    }
     
     // Набори даних для діаграми
     const datasets = [];
     
-    // Нормалізуємо дані для кожного регіону
-    topRegions.forEach((region, index) => {
+    // Нормалізуємо дані для кожного вибраного регіону
+    selectedRegions.forEach((region, index) => {
         const normalizedData = vars.map(variable => {
             // Знаходимо максимальне значення для змінної
             const max = Math.max(...regionsData.map(r => r[variable]));
@@ -270,35 +368,42 @@ function createStructureChart() {
                 datasets: datasets
             },
             options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                aspectRatio: 1.2, // Фіксуємо співвідношення сторін
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            boxWidth: 20, // Зменшуємо розмір легенди
+                            padding: 5
+                        }
+                    },
+                    title: {
+                        font: {
+                            size: 14 // Менший розмір заголовка
+                        }
+                    }
+                },
                 scales: {
                     r: {
+                        ticks: {
+                            display: true,
+                            backdropPadding: 2, // Зменшення відступів
+                            font: {
+                                size: 10 // Зменшений розмір шрифту
+                            }
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 11 // Зменшений розмір міток осей
+                            }
+                        },
                         angleLines: {
                             display: true
-                        },
-                        ticks: {
-                            beginAtZero: true,
-                            max: 100
                         }
                     }
-                },
-                plugins: {
-                    title: {
-                        display: true,
-                        text: 'Економічні показники за регіонами (% від максимального значення)'
-                    },
-                    legend: {
-                        position: 'top'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `${context.dataset.label}: ${context.raw.toFixed(1)}%`;
-                            }
-                        }
-                    }
-                },
-                responsive: true,
-                maintainAspectRatio: false
+                }
             }
         });
         
@@ -404,144 +509,159 @@ function createRegressionComparisonChart() {
 }
 
 /**
- * Створює теплову карту кореляційної матриці
- * @returns {Chart} об'єкт Chart.js з тепловою картою
+ * Створює інтерактивну кореляційну матрицю
+ * @returns {void}
  */
-function createCorrelationHeatmap() {
-    const ctx = document.getElementById('correlationHeatmap');
-    if (!ctx) {
-        console.error('Canvas element with id "correlationHeatmap" not found');
-        return null;
+function createCorrelationMatrix() {
+    // Отримуємо дані кореляції з таблиці на зображенні
+    const correlationData = [
+        [1.000000, 0.347533, 0.398948, 0.455743, 0.072914, -0.233402, -0.731222, 0.477978],
+        [0.347533, 1.000000, -0.284056, 0.571003, -0.285483, 0.382480, -0.362842, 0.642578],
+        [0.398948, -0.284056, 1.000000, -0.523649, 0.152937, -0.139176, -0.092895, 0.016266],
+        [0.455743, 0.571003, -0.523649, 1.000000, -0.226343, -0.227577, -0.481548, 0.473286],
+        [0.072914, -0.285483, 0.152937, -0.226343, 1.000000, -0.104438, -0.147477, -0.523283],
+        [-0.233402, 0.382480, -0.139176, -0.227577, -0.104438, 1.000000, -0.030252, 0.417640],
+        [-0.731222, -0.362842, -0.092895, -0.481548, -0.147477, -0.030252, 1.000000, -0.494440],
+        [0.477978, 0.642578, 0.016266, 0.473286, -0.523283, 0.417640, -0.494440, 1.000000]
+    ];
+    
+    // Змінні та їх назви
+    const variables = ['ВРП', 'Основні засоби', 'Інвестиції', 'Зайнятість населення', 
+                       'Кількість підприємств', 'Доходи населення', 'Нові основні засоби', 
+                       'Роздрібний товарооборот'];
+    
+    // Створення контейнера для матриці
+    const matrixContainer = document.getElementById('correlationMatrixContainer');
+    if (!matrixContainer) {
+        console.error('Контейнер для кореляційної матриці не знайдено');
+        return;
     }
     
-    // Безпечне знищення попереднього графіка
-    safeDestroyChart(window.correlationHeatmapChart, 'correlationHeatmapChart');
+    // Очищаємо контейнер
+    matrixContainer.innerHTML = '';
     
-    // Використовуємо глобальні змінні або створюємо їх, якщо не існують
-    const vars = typeof analysisVariables !== 'undefined' ? analysisVariables : 
-                ['grp', 'assets', 'investments', 'employment', 'enterprises', 'income', 'new_assets', 'retail'];
+    // Створюємо таблицю
+    const table = document.createElement('table');
+    table.className = 'correlation-table';
     
-    // Обчислюємо кореляційну матрицю
-    let corrMatrix;
-    if (window.correlationMatrix) {
-        corrMatrix = window.correlationMatrix;
-    } else {
-        corrMatrix = calculateCorrelationMatrix(regionsData, vars);
-        window.correlationMatrix = corrMatrix;
-    }
+    // Створюємо заголовок таблиці
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
     
-    // Підготовка даних для теплової карти
-    const heatmapData = [];
+    // Додаємо порожню комірку у верхньому лівому куті
+    const emptyHeader = document.createElement('th');
+    emptyHeader.className = 'corner-cell';
+    headerRow.appendChild(emptyHeader);
     
-    vars.forEach((yVar, yIndex) => {
-        vars.forEach((xVar, xIndex) => {
-            if (corrMatrix[yVar] && corrMatrix[yVar][xVar] !== undefined) {
-                const value = corrMatrix[yVar][xVar];
-                heatmapData.push({
-                    x: xIndex,
-                    y: yIndex,
-                    value: value
-                });
-            } else {
-                console.warn(`Відсутнє значення кореляції для ${yVar} і ${xVar}`);
-            }
-        });
+    // Додаємо назви змінних як заголовки стовпців
+    variables.forEach((variable, index) => {
+        const th = document.createElement('th');
+        th.textContent = variable;
+        th.dataset.index = index;
+        headerRow.appendChild(th);
     });
     
-    try {
-        // Створюємо теплову карту
-        const chartContext = ctx.getContext('2d');
-        window.correlationHeatmapChart = new Chart(chartContext, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Кореляційна матриця',
-                    data: heatmapData.map(point => ({
-                        x: point.x,
-                        y: point.y,
-                        value: point.value
-                    })),
-                    backgroundColor: function(context) {
-                        const value = context.raw.value;
-                        return getCorrelationColor(value);
-                    },
-                    pointRadius: 25,
-                    pointHoverRadius: 30
-                }]
-            },
-            options: {
-                scales: {
-                    x: {
-                        type: 'category',
-                        labels: vars.map(v => varNames[v] || v),
-                        position: 'top',
-                        grid: {
-                            display: false
-                        }
-                    },
-                    y: {
-                        type: 'category',
-                        labels: vars.map(v => varNames[v] || v),
-                        reverse: true,
-                        grid: {
-                            display: false
-                        }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const index = context.dataIndex;
-                                const point = heatmapData[index];
-                                const xVar = vars[point.x];
-                                const yVar = vars[point.y];
-                                return `${varNames[yVar]} і ${varNames[xVar]}: ${point.value.toFixed(3)}`;
-                            }
-                        }
-                    },
-                    legend: {
-                        display: false
-                    }
-                },
-                responsive: true,
-                maintainAspectRatio: false
-            },
-            plugins: [{
-                id: 'correlationValues',
-                afterDraw: function(chart) {
-                    const ctx = chart.ctx;
-                    chart.data.datasets[0].data.forEach((point, index) => {
-                        const datasetIndex = 0;
-                        const meta = chart.getDatasetMeta(datasetIndex);
-                        const element = meta.data[index];
-                        
-                        // Координати центру елемента
-                        const position = element.getCenterPoint();
-                        
-                        // Отримання значення кореляції
-                        const value = heatmapData[index].value;
-                        
-                        // Вибір кольору тексту залежно від фону
-                        ctx.fillStyle = Math.abs(value) > 0.5 ? 'white' : 'black';
-                        
-                        // Налаштування шрифту
-                        ctx.font = '12px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        
-                        // Додаємо значення кореляції
-                        ctx.fillText(value.toFixed(2), position.x, position.y);
-                    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    // Створюємо тіло таблиці
+    const tbody = document.createElement('tbody');
+    
+    // Додаємо рядки з даними
+    correlationData.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        
+        // Додаємо назву змінної як першу комірку в рядку
+        const variableCell = document.createElement('th');
+        variableCell.textContent = variables[rowIndex];
+        variableCell.dataset.index = rowIndex;
+        tr.appendChild(variableCell);
+        
+        // Додаємо комірки зі значеннями кореляції
+        row.forEach((value, colIndex) => {
+            const td = document.createElement('td');
+            td.textContent = value.toFixed(3);
+            
+            // Встановлюємо колір фону залежно від значення кореляції
+            const colorIntensity = Math.abs(value) * 100;
+            if (value > 0) {
+                // Позитивна кореляція - синій колір
+                td.style.backgroundColor = `rgba(66, 133, 244, ${colorIntensity}%)`;
+                if (value > 0.7) {
+                    td.style.color = 'white';
                 }
-            }]
+            } else if (value < 0) {
+                // Негативна кореляція - червоний колір
+                td.style.backgroundColor = `rgba(219, 68, 55, ${colorIntensity}%)`;
+                if (value < -0.7) {
+                    td.style.color = 'white';
+                }
+            } else {
+                // Нульова кореляція - сірий
+                td.style.backgroundColor = '#f5f5f5';
+            }
+            
+            // Діагональні елементи (кореляція змінної з собою)
+            if (rowIndex === colIndex) {
+                td.classList.add('diagonal-cell');
+                td.style.backgroundColor = '#4e73df';
+                td.style.color = 'white';
+            }
+            
+            tr.appendChild(td);
         });
         
-        return window.correlationHeatmapChart;
-    } catch (e) {
-        console.error('Помилка при створенні теплової карти кореляції:', e);
-        return null;
-    }
+        tbody.appendChild(tr);
+    });
+    
+    table.appendChild(tbody);
+    matrixContainer.appendChild(table);
+    
+    // Додаємо стилі для таблиці
+    const style = document.createElement('style');
+    style.textContent = `
+        .correlation-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Roboto', sans-serif;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin: 20px 0;
+        }
+        
+        .correlation-table th, .correlation-table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #e3e6f0;
+            transition: all 0.3s;
+        }
+        
+        .correlation-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .correlation-table tbody tr:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .correlation-table td:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+            position: relative;
+        }
+        
+        .corner-cell {
+            background-color: #4e73df !important;
+            color: white;
+        }
+        
+        .diagonal-cell {
+            font-weight: bold;
+        }
+    `;
+    
+    document.head.appendChild(style);
 }
 
 /**
