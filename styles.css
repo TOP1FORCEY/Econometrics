@@ -2,6 +2,30 @@
 body {
     font-family: 'Roboto', sans-serif;
     background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.footer2 {
+    width: 100%;
+    max-width: 100%; 
+    
+    margin: 0;
+    padding: 0;
+    
+    margin-top: auto;
+    position: relative;
+    bottom: 10;
+    background-color: #292929; /* dark background */
+    color: white;
+    text-align: center;
+    padding-top: 0.75rem; /* py-3 */
+    padding-bottom: 0.75rem; /* py-3 */
+}
+
+.container {
+    flex: 1 0 auto;
 }
 
 .header {
@@ -115,10 +139,6 @@ body {
     width: 100%;
     margin: 20px 0;
     overflow: visible;
-}
-
-footer {
-    margin-top: 50px;
 }
 
 /* Спіннер завантаження */
