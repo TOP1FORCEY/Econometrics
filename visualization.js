@@ -426,7 +426,7 @@ function createRegressionComparisonChart() {
     
     const ctx = document.getElementById('regressionChart');
     if (!ctx) {
-        console.error('Canvas element with id "regressionChart" not found');
+        console.error('Canvas element with id "regressionChart" not found1');
         return null;
     }
     
