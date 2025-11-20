@@ -122,14 +122,6 @@
       <canvas id="chartProb"></canvas>
     </div>
     <div class="card">
-      <h2>Індекс тиску на валютному ринку (EMP)</h2>
-      <canvas id="chartEMP"></canvas>
-    </div>
-    <div class="card">
-      <h2>Композит сигналів (KLR)</h2>
-      <canvas id="chartComposite"></canvas>
-    </div>
-    <div class="card">
       <h2>Державний борг / ВВП (%)</h2>
       <canvas id="chartDebt"></canvas>
     </div>
@@ -146,18 +138,23 @@
 
   <div id="tabConclusions" class="hidden">
     <div class="card">
-      <h2>Криза ринку нерухомості Фінляндія, 1991–93</h2>
-      <p><b>Дані.</b> Вибірка: щомісячні спостереження 1980–2010 рр., кризова змінна <code>CrisisWithinH=1</code> означає банківську/валютну кризу протягом часового горизонту. Кожна наступна модель оцінюється як логіт-модель, та насе за собою зміни для більш детального аналізу у картках наведено коефіцієнти, стандартні похибки, p-value та висновки.</p>
-      <p><b>Процес.</b> Виходячм з повної моделі, прибираємо мультиколінеарність/автокореляцію та формуємо дані для наступної регресії. (Accuracy, Recall, Brier, McFadden R²) відстежується для кожної моделі.</p>
+      <h2>Поради для уникнення кризи</h2>
+      <p><b>Дані.</b> Світова вибірка 1980–2010 рр., змінна <code>CrisisWithinH=1</code> означає валютно-банківську кризу протягом 24 місяців. Модель поєднує фундаментальні показники, монетарні шоки та контроль p-value/діагностики.</p>
+      <p><b>Висновок.</b> Найменшу помилку дає комбінація жорсткого кредитного та монетарного режимів. У фінальному сценарії обмежуємо <code>DomCred_GDP_yoy</code> до 1.5 п.п., підвищуємо реальну ставку на 150 б.п. та знижуємо <code>Composite_Index</code> на 0.2 (через попередні дії). Аналізуємо вікно 1988-01 – 1994-12 (84 спостереження).</p>
       <div id="iterationsGrid" class="iteration-grid"></div>
     </div>
     <div class="card">
-      <h3>Діагностичні підсумки та інтерпретація</h3>
+      <h3>Діагностика та сигналізатори</h3>
       <div id="diagnosticsBox"></div>
     </div>
     <div class="card">
-      <h3>Поради для уникнення кризи</h3>
+      <h3>Контрафакти для втримання кризи</h3>
       <div id="counterfactualBox"></div>
+    </div>
+    <div class="card">
+      <h3>Ймовірність кризи p(t): старт vs результат</h3>
+      <canvas id="chartProbCompare"></canvas>
+      <p class="small">Сіра лінія показує стартову модель, червона — траєкторію після зміни політики.</p>
     </div>
   </div>
 <div id="tabData" class="hidden">
@@ -186,6 +183,7 @@ const UA_NAMES = {"REER_dev": "Переоцінка REER (відхилення, 
 const VAR_DESCR = {"REER_dev": "Наскільки реальний ефективний курс «задорогоцінений».", "M2_to_Res_yoy": "М2 росте швидше за резерви — ризик ранiв/девальвацій.", "Reserves_yoy": "Річний приріст ЗВР. Падіння — тиск на валюту.", "DomCred_GDP_yoy": "Річна зміна кредиту до ВВП (п.п.).", "RealRate": "Політична ставка − інфляція.", "ToT_yoy": "Зміна умов торгівлі.", "Composite_Index": "Частка індикаторів KLR із сигналом."};
 
 const VARS = ["REER_dev","M2_to_Res_yoy","Reserves_yoy","DomCred_GDP_yoy","RealRate","ToT_yoy","Composite_Index"];
+const DEFAULT_MASK = VARS.reduce((acc,v)=>{ acc[v]=1; return acc; }, {});
 const ORDER = ["date","REER_dev","M2_to_Res_yoy","Reserves_yoy","DomCred_GDP_yoy","RealRate","ToT_yoy","Composite_Index","Debt_GDP_pct","EMP","CrisisWithinH","CrisisFlag"];
 const ITERATIONS_DEF = [
   {
@@ -211,6 +209,7 @@ const FINAL_ITER_KEY = 'iter2';
 const CLASS_THRESHOLD = 0.35;
 let iterationResults = [];
 const chartTooltip = document.getElementById('chartTooltip');
+let counterfactualSeries = null;
 
 function sigmoid(z){return 1/(1+Math.exp(-z));}
 function safe(v){return (v===null||v===undefined||Number.isNaN(v))?0:v;}
@@ -595,26 +594,31 @@ function simulateCounterfactual(result){
     actualMean,
     scenarioMean,
     actualShare,
-    scenarioShare
+    scenarioShare,
+    seriesDates:dates,
+    seriesActual:actual,
+    seriesScenario:scenario
   };
 }
 
 function renderCounterfactualSummary(results){
   const box=document.getElementById('counterfactualBox');
+  counterfactualSeries=null;
   if(!box) return;
-  if(!results.length){ box.textContent='Недостатньо даних для сценарію.'; return; }
+  if(!results.length){ box.textContent='Немає результатів для порівняння.'; return; }
   const finalResult = results.find(r=>r.key===FINAL_ITER_KEY) || results[results.length-1];
-  if(!finalResult || finalResult.error){ box.textContent='Немає стійкої фінальної моделі.'; return; }
+  if(!finalResult || finalResult.error){ box.textContent='Фінальну модель не знайдено.'; return; }
   const sim=simulateCounterfactual(finalResult);
-  if(!sim){ box.textContent='Немає достатньо спостережень з повними даними для 1988–1994 рр.'; return; }
-  box.innerHTML = `<p>Використовуємо фінальну регресію для зміни політики. Необхідні дії: обмежуємо <code>DomCred_GDP_yoy</code> до 1.5 п.п., підвищуємо реальну ставку на 150 б.п. та знижуємо <code>Composite_Index</code> на 0.2 (через попередні дії). Аналізуємо вікно ${sim.start} – ${sim.end} (${sim.n} спостережень).</p>
-  <div class=\"mini-metrics\">
-    <span>p̄ факт ${(sim.actualMean*100).toFixed(1)}%</span>
-    <span>p̄ політика ${(sim.scenarioMean*100).toFixed(1)}%</span>
+  if(!sim){ box.textContent='Бракує спостережень у вікні 1988–1994 рр.'; return; }
+  counterfactualSeries = {dates:sim.seriesDates, actual:sim.seriesActual, scenario:sim.seriesScenario};
+  box.innerHTML = `<p>Перевіряємо, як зміни кредитної та монетарної політик впливають на ризик. Контрфакт: <code>DomCred_GDP_yoy</code> ≤ 1.5 п.п., реальна ставка +150 б.п., <code>Composite_Index</code> –0.2. Вікно ${sim.start} – ${sim.end} (${sim.n} спостережень).</p>
+  <div class="mini-metrics">
+    <span>pₜ факт ${(sim.actualMean*100).toFixed(1)}%</span>
+    <span>pₜ політика ${(sim.scenarioMean*100).toFixed(1)}%</span>
     <span>Частка p>0.35 факт ${(sim.actualShare*100).toFixed(1)}%</span>
     <span>Частка p>0.35 політика ${(sim.scenarioShare*100).toFixed(1)}%</span>
   </div>
-  <p>Імовірність кризи падає на ${( (sim.actualMean-sim.scenarioMean)*100).toFixed(1)} п.п., а спрацювання тригеру (p>${CLASS_THRESHOLD.toFixed(2)}) скорочується з ${(sim.actualShare*100).toFixed(1)}% до ${(sim.scenarioShare*100).toFixed(1)}%. Це кількісно підтверджує тезу: жорсткі кредитні та монетарні умови могли відвернути епізод 1991–93.</p>`;
+  <p>Ймовірність кризи падає на ${( (sim.actualMean-sim.scenarioMean)*100).toFixed(1)} п.п., а спрацювання тригера (p>${CLASS_THRESHOLD.toFixed(2)}) скорочується з ${(sim.actualShare*100).toFixed(1)}% до ${(sim.scenarioShare*100).toFixed(1)}%. Це підтверджує, що жорсткі кредити та монетарні умови могли відвернути епізод 1991–93.</p>`;
 }
 
 function recomputeIterationResults(){
@@ -622,14 +626,33 @@ function recomputeIterationResults(){
   renderIterationCards(iterationResults);
   renderDiagnosticsSummary(iterationResults);
   renderCounterfactualSummary(iterationResults);
+  redrawAll();
 }
 
 function lineChart(canvas, xs, ys, opts={}){
+  if(!canvas) return;
   const ctx=canvas.getContext('2d');
   const W=canvas.width=canvas.clientWidth, H=canvas.height=canvas.clientHeight;
   ctx.clearRect(0,0,W,H);
   const padL=70, pad=46;
-  const valid=ys.filter(v=>Number.isFinite(v));
+  const baseSeries={
+    label: opts.seriesLabel || opts.tooltipLabel || opts.ylabel || '????????',
+    data: Array.isArray(ys)? ys : [],
+    color: opts.color || '#2563eb',
+    width: opts.lineWidth || 2.6,
+    dash: opts.dash || null,
+    formatter: opts.yfmt
+  };
+  const extraSeries=(opts.extraSeries||[]).map(series=>({
+    label: series.label || '?????',
+    data: Array.isArray(series.data)? series.data : [],
+    color: series.color || '#94a3b8',
+    width: series.lineWidth || series.width || 2.2,
+    dash: series.dash || null,
+    formatter: series.yfmt || opts.yfmt
+  }));
+  const allSeries=[baseSeries, ...extraSeries];
+  const valid=allSeries.flatMap(series=> series.data.filter(v=>Number.isFinite(v)));
   const safeVals = valid.length? valid : [0];
   const min=Math.min(...safeVals), max=Math.max(...safeVals);
   const range=(max-min)||1;
@@ -637,11 +660,49 @@ function lineChart(canvas, xs, ys, opts={}){
   const spanX=Math.max(1,(W-padL-pad));
   const aY=(v)=> H-pad - ((v-min)/range)*(H-pad-pad);
   const aX=(i)=> padL + i*spanX/maxIndex;
-  ctx.strokeStyle='#e5e7eb'; for(let g=0; g<=5; g++){const y=pad+g*(H-pad-pad)/5; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-pad,y); ctx.stroke();}
-  if(opts.shade){ctx.fillStyle='rgba(239,68,68,0.10)'; for(let i=0;i<xs.length;i++) if(opts.shade[i]){const x=aX(i), x2=aX(Math.min(i+1,xs.length-1)); ctx.fillRect(x,pad,Math.max(1,x2-x),H-pad-pad);}}
-  if(opts.vlines){ctx.strokeStyle='rgba(239,68,68,0.7)'; ctx.lineWidth=1.5; for(let i=0;i<xs.length;i++) if(opts.vlines[i]){const x=aX(i); ctx.beginPath(); ctx.moveTo(x,pad); ctx.lineTo(x,H-pad); ctx.stroke();}}
-  ctx.strokeStyle=opts.color||'#2563eb'; ctx.lineWidth=2.6; ctx.beginPath();
-  for(let i=0;i<ys.length;i++){const x=aX(i), y=aY(ys[i]); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
+  ctx.strokeStyle='#e5e7eb';
+  for(let g=0; g<=5; g++){
+    const y=pad+g*(H-pad-pad)/5;
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-pad,y); ctx.stroke();
+  }
+  if(opts.shade){
+    ctx.fillStyle='rgba(239,68,68,0.10)';
+    for(let i=0;i<xs.length;i++){
+      if(opts.shade[i]){
+        const x=aX(i), x2=aX(Math.min(i+1,xs.length-1));
+        ctx.fillRect(x,pad,Math.max(1,x2-x),H-pad-pad);
+      }
+    }
+  }
+  if(opts.vlines){
+    ctx.strokeStyle='rgba(239,68,68,0.7)'; ctx.lineWidth=1.5;
+    for(let i=0;i<xs.length;i++){
+      if(opts.vlines[i]){
+        const x=aX(i);
+        ctx.beginPath(); ctx.moveTo(x,pad); ctx.lineTo(x,H-pad); ctx.stroke();
+      }
+    }
+  }
+  const drawSeries=(series)=>{
+    if(!series.data || !series.data.length) return;
+    ctx.save();
+    ctx.strokeStyle=series.color||'#2563eb';
+    ctx.lineWidth=series.width||2.4;
+    if(series.dash && series.dash.length) ctx.setLineDash(series.dash);
+    ctx.beginPath();
+    let started=false;
+    for(let i=0;i<series.data.length;i++){
+      const val=series.data[i];
+      if(!Number.isFinite(val)) continue;
+      const x=aX(i), y=aY(val);
+      if(!started){ ctx.moveTo(x,y); started=true; }
+      else ctx.lineTo(x,y);
+    }
+    if(started) ctx.stroke();
+    ctx.restore();
+  };
+  drawSeries(baseSeries);
+  for(const extra of extraSeries) drawSeries(extra);
   const years = xs.map(s=>parseInt(s.slice(0,4),10));
   const months = xs.map(s=>parseInt(s.slice(5,7),10));
   const uniqueYears = [...new Set(years)];
@@ -652,8 +713,32 @@ function lineChart(canvas, xs, ys, opts={}){
   ctx.textAlign='right'; ctx.textBaseline='middle';
   for(let g=0; g<=5; g++){ const v=min + g*(max-min)/5; const y=aY(v); const txt = (opts.yfmt? opts.yfmt(v): v.toFixed(2)); ctx.fillText(txt, padL-8, y); }
   if(opts.ylabel){ ctx.save(); ctx.translate(16, H/2); ctx.rotate(-Math.PI/2); ctx.textAlign='center'; ctx.fillText(opts.ylabel, 0, 0); ctx.restore(); }
+  const legendNeeded=(opts.legend || extraSeries.length>0) && allSeries.some(s=>s.label);
+  if(legendNeeded){
+    ctx.save();
+    ctx.font='13px ui-sans-serif';
+    ctx.textAlign='left';
+    ctx.textBaseline='middle';
+    let legY=Math.max(16, pad-24);
+    const legX=padL+10;
+    for(const entry of allSeries){
+      if(!entry.label) continue;
+      ctx.strokeStyle=entry.color||'#2563eb';
+      ctx.lineWidth=entry.width||2.2;
+      if(entry.dash && entry.dash.length) ctx.setLineDash(entry.dash); else ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(legX, legY);
+      ctx.lineTo(legX+24, legY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#0f172a';
+      ctx.fillText(entry.label, legX+32, legY);
+      legY+=18;
+    }
+    ctx.restore();
+  }
   ctx.strokeStyle='#e5e7eb'; ctx.beginPath(); ctx.moveTo(padL,H-pad); ctx.lineTo(W-pad,H-pad); ctx.stroke();
-  canvas._chartState = {xs, ys, opts, padL, pad, H, W, min, max, rangeX:spanX, maxIndex};
+  canvas._chartState = {xs, series:allSeries, opts, padL, pad, rangeX:spanX, maxIndex};
   attachChartTooltip(canvas);
 }
 
@@ -677,13 +762,23 @@ function handleChartMove(evt){
   const maxIdx=Math.max(0,state.xs.length-1);
   const clamped=Math.min(1, Math.max(0, ratio));
   const idx=Math.min(maxIdx, Math.round(clamped*(state.maxIndex||maxIdx||1)));
-  const value=state.ys[idx];
-  if(value==null || !isFinite(value)){ hideChartTooltip(); return; }
-  const numericValue=Number(value);
+  const seriesList = (state.series && state.series.length)? state.series : [{
+    data: state.ys || [],
+    label: (state.opts && (state.opts.tooltipLabel || state.opts.ylabel)) || 'Показник',
+    formatter: state.opts ? state.opts.yfmt : null
+  }];
+  const rows=[];
+  for(const series of seriesList){
+    if(!series.data || idx>=series.data.length) continue;
+    const value=series.data[idx];
+    if(value==null || !isFinite(value)) continue;
+    const formatter=series.formatter || (state.opts ? state.opts.yfmt : null);
+    const valText=formatter? formatter(Number(value)) : Number(value).toFixed(2);
+    rows.push(`<div>${series.label || 'Серія'}: <b>${valText}</b></div>`);
+  }
+  if(!rows.length){ hideChartTooltip(); return; }
   const label=state.xs[idx];
-  const metricLabel=state.opts.tooltipLabel || state.opts.ylabel || 'Значення';
-  const valText=state.opts.yfmt ? state.opts.yfmt(numericValue) : numericValue.toFixed(2);
-  chartTooltip.innerHTML = `<div style="font-weight:400;">${label}</div><div>${metricLabel}: <b>${valText}</b></div>`;
+  chartTooltip.innerHTML = `<div style="font-weight:400;">${label}</div>${rows.join('')}`;
   chartTooltip.style.left = `${evt.clientX + 16}px`;
   chartTooltip.style.top = `${evt.clientY + 16}px`;
   chartTooltip.classList.remove('hidden');
@@ -698,9 +793,10 @@ function renderNSR(){
   for(const r of NSR){
     let cls=''; const v=r.NSR;
     if(v==null || isNaN(v)) cls=''; else if(v<=0.3) cls='nsr-ok'; else if(v<=0.5) cls='nsr-mid'; else cls='nsr-bad';
+    const valueText = Number.isFinite(v) ? v.toFixed(2) : '';
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${r.indicator}</td><td>${r.A}</td><td>${r.B}</td><td>${r.C}</td><td>${r.D}</}</td>
-                  <td class="${cls}">${(v??'').toFixed? v.toFixed(2): ''}</td>`;
+                  <td class="${cls}">${valueText}</td>`;
     tb.appendChild(tr);
   }
 }
@@ -756,6 +852,7 @@ document.getElementById('tabBtnCharts').addEventListener('click',()=>{
   document.getElementById('tabBtnCharts').classList.add('active');
   document.getElementById('tabBtnConclusions').classList.remove('active');
   document.getElementById('tabBtnData').classList.remove('active');
+  requestAnimationFrame(()=>redrawAll());
 });
 document.getElementById('tabBtnConclusions').addEventListener('click',()=>{
   document.getElementById('tabCharts').classList.add('hidden');
@@ -764,6 +861,7 @@ document.getElementById('tabBtnConclusions').addEventListener('click',()=>{
   document.getElementById('tabBtnConclusions').classList.add('active');
   document.getElementById('tabBtnCharts').classList.remove('active');
   document.getElementById('tabBtnData').classList.remove('active');
+  requestAnimationFrame(()=>redrawAll());
 });
 document.getElementById('tabBtnData').addEventListener('click',()=>{
   document.getElementById('tabCharts').classList.add('hidden');
@@ -776,26 +874,74 @@ document.getElementById('tabBtnData').addEventListener('click',()=>{
 
 function redrawAll(){
   const b=betas(), m=mask(), p=computeP(b,m), thr=parseFloat(document.getElementById('threshold').value||0.35);
+  const baseP=computeP(BETA_DEFAULT, DEFAULT_MASK);
   const M=metrics(p,thr);
   const xs=DATA.map(r=>r.date), band=DATA.map(r=>r.CrisisWithinH||0), crisis=DATA.map(r=>r.CrisisFlag||0);
-  const emp=DATA.map(r=>r.EMP||0), comp=DATA.map(r=>r.Composite_Index||0), debt=DATA.map(r=>r.Debt_GDP_pct||0);
-  lineChart(document.getElementById('chartProb'), xs, p, {shade:band, ylabel:'Ймовірність (0-1)', yfmt:(v)=>v.toFixed(2), color:'#2563eb', tooltipLabel:'p(t)'});
-  lineChart(document.getElementById('chartEMP'), xs, emp, {ylabel:'EMP (од. індексу)', yfmt:(v)=>v.toFixed(2), color:'#0ea5e9', tooltipLabel:'EMP'});
-  lineChart(document.getElementById('chartComposite'), xs, comp, {shade:band, ylabel:'Композитний індекс (0-1)', yfmt:(v)=>v.toFixed(2), color:'#10b981', tooltipLabel:'KLR'});
-  lineChart(document.getElementById('chartDebt'), xs, debt, {vlines:crisis, color:'#ef4444', ylabel:'Борг / ВВП (%)', yfmt:(v)=>v.toFixed(1), tooltipLabel:'Debt / GDP'});
+  const debt=DATA.map(r=>r.Debt_GDP_pct||0);
+  lineChart(document.getElementById('chartProb'), xs, p, {shade:band, ylabel:'??????????? (0-1)', yfmt:(v)=>v.toFixed(2), color:'#2563eb', tooltipLabel:'p(t)'});
+  const compareCanvas=document.getElementById('chartProbCompare');
+  if(compareCanvas){
+    if(counterfactualSeries && counterfactualSeries.dates && counterfactualSeries.dates.length){
+      const idxMap=new Map(xs.map((d,i)=>[d,i]));
+      const baseLine=new Array(xs.length).fill(null);
+      const finalLine=new Array(xs.length).fill(null);
+      for(let i=0;i<counterfactualSeries.dates.length;i++){
+        const idx=idxMap.get(counterfactualSeries.dates[i]);
+        if(idx===undefined) continue;
+        const baseVal=counterfactualSeries.actual[i];
+        const finalVal=counterfactualSeries.scenario[i];
+        if(Number.isFinite(baseVal)) baseLine[idx]=baseVal;
+        if(Number.isFinite(finalVal)) finalLine[idx]=finalVal;
+      }
+      lineChart(compareCanvas, xs, baseLine, {
+        shade:band,
+        ylabel:'Ймовірність кризи (0-1)',
+        yfmt:(v)=>v.toFixed(2),
+        color:'#94a3b8',
+        seriesLabel:'старт',
+        tooltipLabel:'p(t)',
+        extraSeries:[{
+          data:finalLine,
+          color:'#ef4444',
+          label:'результат',
+          yfmt:(v)=>v.toFixed(2)
+        }],
+        legend:true
+      });
+    } else {
+      lineChart(compareCanvas, xs, p, {
+        shade:band,
+        ylabel:'??????????? (0-1)',
+        yfmt:(v)=>v.toFixed(2),
+        color:'#94a3b8',
+        seriesLabel:'???????? ??????',
+        tooltipLabel:'p(t)',
+        extraSeries:[{
+          data:baseP,
+          color:'#ef4444',
+          label:'??????? ??????',
+          dash:[8,4],
+          yfmt:(v)=>v.toFixed(2)
+        }],
+        legend:true
+      });
+    }
+  }
+  lineChart(document.getElementById('chartDebt'), xs, debt, {vlines:crisis, color:'#ef4444', ylabel:'???? / ??? (%)', yfmt:(v)=>v.toFixed(1), tooltipLabel:'Debt / GDP'});
   document.getElementById('metrics').innerHTML =
     `<span>Accuracy: ${(M.acc*100).toFixed(1)}%</span>
      <span>Precision: ${(M.prec*100).toFixed(1)}%</span>
      <span>Recall: ${(M.rec*100).toFixed(1)}%</span>
      <span>F1: ${(M.f1*100).toFixed(1)}%</span>
      <span>Brier: ${M.brier.toFixed(3)}</span>
-     <span>TP: ${M.tp} · FP: ${M.fp} · FN: ${M.fn} · TN: ${M.tn}</span>`;
+     <span>TP: ${M.tp} - FP: ${M.fp} - FN: ${M.fn} - TN: ${M.tn}</span>`;
 }
 
 buildVarLines();
 (function(){const tb=document.querySelector('#tblNSR tbody'); for(const r of NSR){ const tr=document.createElement('tr'); const v=r.NSR;
   let cls=''; if(v==null||isNaN(v)) cls=''; else if(v<=0.3) cls='nsr-ok'; else if(v<=0.5) cls='nsr-mid'; else cls='nsr-bad';
-  tr.innerHTML=`<td>${r.indicator}</td><td>${r.A}</td><td>${r.B}</td><td>${r.C}</td><td>${r.D}</td><td class="${cls}">${(v??'').toFixed? v.toFixed(2): ''}</td>`; tb.appendChild(tr);} })();
+  const valueText=Number.isFinite(v)? v.toFixed(2):'';
+  tr.innerHTML=`<td>${r.indicator}</td><td>${r.A}</td><td>${r.B}</td><td>${r.C}</td><td>${r.D}</td><td class="${cls}">${valueText}</td>`; tb.appendChild(tr);} })();
 setRecommended(); redrawAll(); renderDataTable(); recomputeIterationResults();
 
 document.getElementById('btnRecommended').addEventListener('click',()=>{ setRecommended(); redrawAll(); });
